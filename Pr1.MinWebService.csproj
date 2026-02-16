@@ -7,4 +7,11 @@
     <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="task1_tests\**" />
+    <Content Remove="task1_tests\**" />
+    <EmbeddedResource Remove="task1_tests\**" />
+    <None Remove="task1_tests\**" />
+  </ItemGroup>
+
 </Project>
