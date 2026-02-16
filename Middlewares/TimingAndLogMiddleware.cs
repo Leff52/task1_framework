@@ -24,17 +24,22 @@ public sealed class TimingAndLogMiddleware
         var requestId = RequestId.GetOrCreate(context);
         var sw = Stopwatch.StartNew();
 
-        await _next(context);
+        try
+        {
+            await _next(context);
+        }
+        finally
+        {
+            sw.Stop();
 
-        sw.Stop();
-
-        _logger.LogInformation(
-            "Запрос обработан. requestId={RequestId} method={Method} path={Path} status={Status} timeMs={TimeMs}",
-            requestId,
-            context.Request.Method,
-            context.Request.Path.Value ?? string.Empty,
-            context.Response.StatusCode,
-            sw.ElapsedMilliseconds
-        );
+            _logger.LogInformation(
+                "Запрос обработан. requestId={RequestId} method={Method} path={Path} status={Status} timeMs={TimeMs}",
+                requestId,
+                context.Request.Method,
+                context.Request.Path.Value ?? string.Empty,
+                context.Response.StatusCode,
+                sw.ElapsedMilliseconds
+            );
+        }
     }
 }
