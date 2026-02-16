@@ -22,10 +22,31 @@ app.UseMiddleware<RequestIdMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<TimingAndLogMiddleware>();
 
-// Точка доступа для чтения списка
-app.MapGet("/api/items", (IItemRepository repo) =>
+// Точка доступа для чтения списка с поддержкой фильтрации и сортировки
+app.MapGet("/api/items", (IItemRepository repo, string? name, decimal? minPrice, decimal? maxPrice, string? sort, string? order) =>
 {
-    return Results.Ok(repo.GetAll());
+    IEnumerable<Item> items = repo.GetAll();
+
+    // Фильтрация по подстроке имени
+    if (!string.IsNullOrWhiteSpace(name))
+        items = items.Where(x => x.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+
+    // Фильтрация по диапазону цены
+    if (minPrice.HasValue)
+        items = items.Where(x => x.Price >= minPrice.Value);
+    if (maxPrice.HasValue)
+        items = items.Where(x => x.Price <= maxPrice.Value);
+
+    // Сортировка: sort=name|price, order=asc|desc (по умолчанию asc)
+    var descending = string.Equals(order, "desc", StringComparison.OrdinalIgnoreCase);
+    items = sort?.ToLowerInvariant() switch
+    {
+        "price" => descending ? items.OrderByDescending(x => x.Price) : items.OrderBy(x => x.Price),
+        _ => descending ? items.OrderByDescending(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                        : items.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase),
+    };
+
+    return Results.Ok(items.ToArray());
 });
 
 // Точка доступа для чтения по идентификатору
@@ -44,8 +65,14 @@ app.MapPost("/api/items", (HttpContext ctx, CreateItemRequest request, IItemRepo
     if (string.IsNullOrWhiteSpace(request.Name))
         throw new ValidationException("Поле name не должно быть пустым");
 
+    if (request.Name.Trim().Length > 200)
+        throw new ValidationException("Поле name не должно превышать 200 символов");
+
     if (request.Price < 0)
         throw new ValidationException("Поле price не может быть отрицательным");
+
+    if (request.Price > 999_999_999m)
+        throw new ValidationException("Поле price не может превышать 999 999 999");
 
     var created = repo.Create(request.Name.Trim(), request.Price);
 
