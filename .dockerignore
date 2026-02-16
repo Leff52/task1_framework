@@ -1,0 +1,7 @@
+bin/
+obj/
+task1_tests/bin/
+task1_tests/obj/
+*.user
+*.suo
+.vs/
