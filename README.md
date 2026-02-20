@@ -1,4 +1,4 @@
-# Pr1.MinWebService — Мини веб-служба каталога элементов
+#  Мини веб-служба каталога элементов
 
 ## Описание
 
@@ -94,24 +94,7 @@ dotnet run
 | `sort` | Поле сортировки: `name` (по умолчанию) или `price` | `?sort=price` |
 | `order` | Направление: `asc` (по умолчанию) или `desc` | `?order=desc` |
 
-### GET /api/items/{id}
 
-Возвращает элемент по GUID-идентификатору. При отсутствии — ответ 404.
-
-### POST /api/items
-
-Создаёт новый элемент. Тело запроса — JSON:
-
-```json
-{ "name": "Учебник C#", "price": 1500.00 }
-```
-
-**Правила валидации:**
-
-1. `name` — не пустое, не длиннее 200 символов.
-2. `price` — неотрицательное, не более 999 999 999.
-
----
 
 ## Единый формат ошибок
 
@@ -142,100 +125,6 @@ dotnet test --verbosity normal
 
 ---
 
-## Ручная проверка (команды для преподавателя)
-
-Запустите службу в одном терминале:
-
-```bash
-cd task1_framework
-dotnet run
-```
-
-В другом терминале выполните команды:
-
-### 1. Получить пустой список
-
-```bash
-curl -s http://localhost:54255/api/items
-```
-
-Ожидаемый ответ: `[]`
-
-### 2. Создать элемент
-
-```bash
-curl -s -X POST http://localhost:54255/api/items -H "Content-Type: application/json" -d "{\"name\": \"Учебник C#\", \"price\": 1500}" -i
-```
-
-Ожидаемый ответ: статус `201 Created`, заголовок `Location`, тело с элементом.
-
-### 3. Создать ещё элементы
-
-```bash
-curl -s -X POST http://localhost:54255/api/items -H "Content-Type: application/json" -d "{\"name\": \"Тетрадь\", \"price\": 50}"
-curl -s -X POST http://localhost:54255/api/items -H "Content-Type: application/json" -d "{\"name\": \"Ручка\", \"price\": 30}"
-```
-
-### 4. Получить список (сортировка по умолчанию — по имени)
-
-```bash
-curl -s http://localhost:54255/api/items
-```
-
-### 5. Фильтрация и сортировка
-
-```bash
-curl -s "http://localhost:54255/api/items?sort=price&order=desc"
-curl -s "http://localhost:54255/api/items?name=учебник"
-curl -s "http://localhost:54255/api/items?minPrice=40&maxPrice=200"
-```
-
-### 6. Получить элемент по идентификатору
-
-Возьмите `id` из ответа при создании и подставьте:
-
-```bash
-curl -s http://localhost:54255/api/items/{id}
-```
-
-### 7. Запрос по несуществующему идентификатору
-
-```bash
-curl -s http://localhost:54255/api/items/00000000-0000-0000-0000-000000000001
-```
-
-Ответ 404:
-
-```json
-{"code":"not_found","message":"Элемент не найден","requestId":"..."}
-```
-
-### 8. Проверка валидации — пустое имя
-
-```bash
-curl -s -X POST http://localhost:54255/api/items -H "Content-Type: application/json" -d "{\"name\": \"\", \"price\": 100}"
-```
-
-Ответ 400: `{"code":"validation","message":"Поле name не должно быть пустым","requestId":"..."}`
-
-### 9. Проверка валидации — отрицательная цена
-
-```bash
-curl -s -X POST http://localhost:54255/api/items -H "Content-Type: application/json" -d "{\"name\": \"Тест\", \"price\": -5}"
-```
-
-Ответ 400: `{"code":"validation","message":"Поле price не может быть отрицательным","requestId":"..."}`
-
-### 10. Проверка X-Request-Id
-
-```bash
-curl -s -i -H "X-Request-Id: my-test-123" http://localhost:54255/api/items
-```
-
-В заголовках ответа будет `X-Request-Id: my-test-123`.
-
----
-
 ## Безопасность и эксплуатационные аспекты
 
 1. **Ограничение размера входных данных** — имя ограничено 200 символами, цена ограничена сверху. Это защищает от попыток заполнить память гигантскими строками.
@@ -244,20 +133,3 @@ curl -s -i -H "X-Request-Id: my-test-123" http://localhost:54255/api/items
 4. **Идентификатор запроса** — проверяется регулярным выражением (`^[a-zA-Z0-9\-]{1,64}$`), чтобы клиент не мог внедрить произвольные данные в заголовки или журнал (Log Injection).
 
 ---
-
-## Наблюдения (экспериментальная часть)
-
-При ручном прогоне видно, что в журнале (консольный вывод) для каждого запроса появляется строка вида:
-
-```text
-info: Pr1.MinWebService.Middlewares.TimingAndLogMiddleware[0]
-      Запрос обработан. requestId=abc123 method=GET path=/api/items status=200 timeMs=3
-```
-
-Это позволяет:
-
-- Сопоставить ответ клиента с записью в журнале по `requestId`.
-- Измерить время обработки и обнаружить аномально медленные запросы.
-- При ошибке найти в журнале полный контекст по `requestId`.
-
-Типичное время обработки GET-запроса к пустому списку — 0–2 мс, POST-запроса с созданием — 1–5 мс. Эти значения подтверждают, что накладные расходы конвейера middleware минимальны.
